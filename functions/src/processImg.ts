@@ -1,10 +1,12 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import { ImageAnnotatorClient } from "@google-cloud/vision";
+import axios from "axios";
 import { ImgData } from "./interface";
 
 admin.initializeApp();
 const vision = new ImageAnnotatorClient();
+const fastapiServiceUrl = "https://fastapi-service-mkmjmbqdoa-de.a.run.app/";
 
 // Firestore trigger function
 export const processImg = functions.firestore
@@ -20,8 +22,43 @@ export const processImg = functions.firestore
     }
 
     // extract text from image
+    await change.after.ref.update({
+      status: "extracting_text",
+    });
     const text = await extract_text(img);
-    console.log("Extracted text:", text);
+    const encodedText = Buffer.from(text).toString("base64");
+    await change.after.ref.update({
+      text: encodedText,
+      status: "predicting_category",
+    });
+
+    // predicting category
+    const category_response = await axios.get(`${fastapiServiceUrl}/category`, {
+      params: {
+        text: text,
+      },
+    });
+    const category = category_response.data.category;
+    await change.after.ref.update({
+      category: category,
+      status: "structurized_text",
+    });
+
+    // structruizing text
+    const structurized_response = await axios.get(
+      `${fastapiServiceUrl}/structurize_text`,
+      {
+        params: {
+          text: text,
+          category: category,
+        },
+      }
+    );
+    const structurized_text = structurized_response.data.structurized_text;
+    await change.after.ref.update({
+      structurized_text: Buffer.from(structurized_text).toString("base64"),
+      status: category == "unknown" ? "fail" : "success",
+    });
 
     return null; // Can return a value or Promise here if needed
   });

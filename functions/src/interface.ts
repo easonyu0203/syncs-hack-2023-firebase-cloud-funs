@@ -2,7 +2,8 @@
 export interface UserData {
   email: string;
   displayName: string;
-  photoUrl: string;
+  photoURL: string;
+  firstTimeLogin: boolean;
 }
 
 // Image data interface
@@ -10,7 +11,7 @@ export interface ImgData {
   userId: string;
   imgUrl: string | null;
   gsUrl: string | null;
-  uploadTime: string;
+  uploadTime: number;
   status:
     | "uploading"
     | "unprocess"
