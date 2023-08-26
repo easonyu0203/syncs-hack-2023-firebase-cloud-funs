@@ -9,6 +9,7 @@ export interface UserData {
 export interface ImgData {
   userId: string;
   imgUrl: string | null;
+  gsUrl: string | null;
   uploadTime: string;
   status:
     | "uploading"
