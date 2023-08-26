@@ -26,9 +26,8 @@ export const processImg = functions.firestore
       status: "extracting_text",
     });
     const text = await extract_text(img);
-    const encodedText = Buffer.from(text).toString("base64");
     await change.after.ref.update({
-      text: encodedText,
+      text: text.replace("\n", "//"),
       status: "predicting_category",
     });
 
@@ -54,13 +53,26 @@ export const processImg = functions.firestore
         },
       }
     );
-    const structurized_text = structurized_response.data.structurized_text;
+    let structurized_text = structurized_response.data.structurized_text;
+    if (category == "events") {
+      structurized_text = {
+        title: structurized_text.title,
+        location: structurized_text.location,
+        time: structurized_text.time,
+        description: structurized_text.description.replace("\n", "//"),
+      };
+    } else if (category == "notes") {
+      structurized_text = {
+        title: structurized_text.title,
+        summary: structurized_text.summary.replace("\n", "//"),
+      };
+    }
     await change.after.ref.update({
-      structurized_text: Buffer.from(structurized_text).toString("base64"),
+      structurized_text: structurized_text,
       status: category == "unknown" ? "fail" : "success",
     });
 
-    return null; // Can return a value or Promise here if needed
+    return null;
   });
 
 const extract_text = async (img: ImgData): Promise<string> => {
