@@ -43,6 +43,13 @@ export const processImg = functions.firestore
       status: "structurized_text",
     });
 
+    if (category == "unknown") {
+      await change.after.ref.update({
+        status: "failed",
+      });
+      return null;
+    }
+
     // structruizing text
     const structurized_response = await axios.get(
       `${fastapiServiceUrl}/structurize_text`,
